@@ -1,0 +1,164 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!129 &1
+PlayerSettings:
+  productName: Marble Odyssey 3D
+  companyName: MarbleOdyssey
+  defaultScreenWidth: 1920
+  defaultScreenHeight: 1080
+  defaultScreenWidthWeb: 960
+  defaultScreenHeightWeb: 600
+  defaultIsNativeResolution: 1
+  runInBackground: 1
+  defaultInterfaceOrientation: 3
+  allowedAutorotateToPortrait: 0
+  allowedAutorotateToPortraitUpsideDown: 0
+  allowedAutorotateToLandscapeRight: 1
+  allowedAutorotateToLandscapeLeft: 1
+  useOnDemandResources: 0
+
+  # Android settings
+  AndroidBundleVersionCode: 1
+  AndroidMinSdkVersion: 24
+  AndroidTargetSdkVersion: 34
+  AndroidTargetArchitectures: 2   # ARM64 only
+  ScriptingBackend:
+    Android: 1   # IL2CPP
+  Il2CppCompilerConfiguration:
+    Android: 2   # Release
+  AndroidSplashScreenScale: 0
+  androidUseCustomKeystore: 0
+
+  # Bundle identifier
+  applicationIdentifier:
+    Android: com.marbleodyssey3d.game
+    Standalone: com.marbleodyssey3d.game
+
+  # Rendering
+  colorSpace: 1   # Linear
+  gpuSkinning: 1
+  graphicsJobs: 1
+  useHDRDisplay: 0
+
+  # Input
+  activeInputHandler: 2   # Both (legacy + new)
+
+  # Build
+  stripEngineCode: 1
+  managedStrippingLevel:
+    Android: 2   # High
+
+  # Scripting
+  apiCompatibilityLevel:
+    Android: 6   # .NET Standard 2.1
+  scriptingDefineSymbols:
+    Android: MARBLE_ODYSSEY;UNITY_ANDROID
+
+  # Quality
+  qualitySettingsNames:
+    - Low
+    - Medium
+    - High
+  qualitySettings:
+    - serializedVersion: 2
+      name: Low
+      pixelLightCount: 1
+      shadows: 1
+      shadowResolution: 1
+      shadowDistance: 40
+      skinWeights: 2
+      globalTextureMipmapLimit: 1
+      anisotropicTextures: 0
+      antiAliasing: 0
+      softParticles: 0
+      realtimeReflectionProbes: 0
+      billboardsFaceCameraPosition: 0
+      resolutionScalingFixedDPIFactor: 0.75
+      vSyncCount: 0
+      lodBias: 0.7
+      maximumLODLevel: 0
+      particleRaycastBudget: 16
+    - serializedVersion: 2
+      name: Medium
+      pixelLightCount: 2
+      shadows: 2
+      shadowResolution: 2
+      shadowDistance: 70
+      skinWeights: 2
+      globalTextureMipmapLimit: 0
+      anisotropicTextures: 1
+      antiAliasing: 2
+      softParticles: 0
+      realtimeReflectionProbes: 1
+      billboardsFaceCameraPosition: 1
+      resolutionScalingFixedDPIFactor: 1.0
+      vSyncCount: 0
+      lodBias: 1.0
+      maximumLODLevel: 0
+      particleRaycastBudget: 64
+    - serializedVersion: 2
+      name: High
+      pixelLightCount: 4
+      shadows: 2
+      shadowResolution: 3
+      shadowDistance: 100
+      skinWeights: 4
+      globalTextureMipmapLimit: 0
+      anisotropicTextures: 2
+      antiAliasing: 4
+      softParticles: 1
+      realtimeReflectionProbes: 1
+      billboardsFaceCameraPosition: 1
+      resolutionScalingFixedDPIFactor: 1.0
+      vSyncCount: 1
+      lodBias: 1.5
+      maximumLODLevel: 0
+      particleRaycastBudget: 256
+
+--- !u!78 &2
+TagManager:
+  tags:
+    - Marble
+    - Obstacle
+    - Collectible
+    - Checkpoint
+    - FinishZone
+    - DeathZone
+    - SpeedBoost
+    - JumpPad
+    - MovingPlatform
+    - Laser
+  layers:
+    0: Default
+    1: TransparentFX
+    2: Ignore Raycast
+    3:
+    4: Water
+    5: UI
+    6: Marble
+    7: Platform
+    8: Obstacle
+    9: Collectible
+    10: Trigger
+
+--- !u!5 &3
+TimeManager:
+  Fixed Timestep: 0.01666667  # 60 Hz physics
+  Maximum Allowed Timestep: 0.1
+  m_TimeScale: 1
+
+--- !u!19 &4
+Physics:
+  m_Gravity: {x: 0, y: -20, z: 0}     # Slightly stronger for snappy marble feel
+  m_DefaultSolverIterations: 8
+  m_DefaultSolverVelocityIterations: 4
+  m_DefaultMaxAngularSpeed: 50
+  m_BounceThreshold: 2
+  m_DefaultContactOffset: 0.01
+  m_SleepThreshold: 0.005
+  m_QueriesHitTriggers: 1
+  m_QueriesHitBackfaces: 0
+  m_AutoSimulation: 1
+  m_AutoSyncTransforms: 0
+  m_ReuseCollisionCallbacks: 1
+  m_DefaultMaxDepenetrationVelocity: 10

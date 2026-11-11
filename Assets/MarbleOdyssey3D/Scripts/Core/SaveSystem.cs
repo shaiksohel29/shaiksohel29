@@ -260,6 +260,25 @@ namespace MarbleOdyssey
             }
         }
 
+        public int GetGems()
+        {
+            lock (_lock) return _totalGems;
+        }
+
+        public bool IsWorldComplete(int worldIndex)
+        {
+            lock (_lock)
+            {
+                for (int i = 0; i < GameConstants.LevelsPerWorld; i++)
+                {
+                    string key = StarKey(worldIndex, i);
+                    if (!_levelStars.TryGetValue(key, out int stars) || stars < 1)
+                        return false;
+                }
+                return true;
+            }
+        }
+
         // =====================================================================
         // Mutators — Settings
         // =====================================================================

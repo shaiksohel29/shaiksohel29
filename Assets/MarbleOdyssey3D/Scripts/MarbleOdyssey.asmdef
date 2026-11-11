@@ -1,7 +1,13 @@
 {
     "name": "MarbleOdyssey",
     "rootNamespace": "MarbleOdyssey",
-    "references": [],
+    "references": [
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.Cinemachine"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

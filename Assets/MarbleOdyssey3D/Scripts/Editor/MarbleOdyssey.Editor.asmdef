@@ -1,0 +1,19 @@
+{
+    "name": "MarbleOdyssey.Editor",
+    "rootNamespace": "MarbleOdyssey.Editor",
+    "references": [
+        "MarbleOdyssey",
+        "MarbleOdyssey.Advertising"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

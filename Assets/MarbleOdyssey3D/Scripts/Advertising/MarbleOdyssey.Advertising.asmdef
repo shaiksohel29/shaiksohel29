@@ -1,0 +1,22 @@
+{
+    "name": "MarbleOdyssey.Advertising",
+    "rootNamespace": "MarbleOdyssey.Advertising",
+    "references": [
+        "MarbleOdyssey"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.google.ads.mobile",
+            "expression": "",
+            "define": "GOOGLE_MOBILE_ADS"
+        }
+    ],
+    "noEngineReferences": false
+}

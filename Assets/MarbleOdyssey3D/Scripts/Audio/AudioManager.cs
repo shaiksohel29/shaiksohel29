@@ -21,6 +21,7 @@ namespace MarbleOdyssey
         private float _sfxVolume = 1f;
         private float _savedMusicVolume;
         private AudioSource _activeMusic;
+        private float _masterVolume = 1f;
         private Dictionary<string, AudioClip> _clipCache = new Dictionary<string, AudioClip>();
         private Coroutine _crossfadeRoutine;
 
@@ -122,6 +123,12 @@ namespace MarbleOdyssey
         {
             _savedMusicVolume = _musicVolume;
             if (_activeMusic != null) _activeMusic.volume = _musicVolume * factor;
+        }
+
+        public float MasterVolume
+        {
+            get => _masterVolume;
+            set => _masterVolume = Mathf.Clamp01(value);
         }
 
         public void RestoreMusicVolume()

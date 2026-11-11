@@ -88,6 +88,13 @@ namespace MarbleOdyssey
         public int DailyStreak
         {
             get { lock (_lock) return _dailyStreak; }
+            set { lock (_lock) { _dailyStreak = value; _dirty = true; } }
+        }
+
+        public string LastDailyDate
+        {
+            get { lock (_lock) return _lastDailyDate; }
+            set { lock (_lock) { _lastDailyDate = value; _dirty = true; } }
         }
 
         public bool IsWorldUnlocked(int worldIndex)
@@ -150,9 +157,25 @@ namespace MarbleOdyssey
         // Public Accessors — Cosmetics
         // =====================================================================
 
-        public string EquippedSkin  { get { lock (_lock) return _equippedSkin; } }
-        public string EquippedTrail { get { lock (_lock) return _equippedTrail; } }
-        public string EquippedHat   { get { lock (_lock) return _equippedHat; } }
+        public string EquippedSkin  { get { lock (_lock) return _equippedSkin; } set { lock (_lock) { _equippedSkin = value; _dirty = true; } } }
+        public string EquippedTrail { get { lock (_lock) return _equippedTrail; } set { lock (_lock) { _equippedTrail = value; _dirty = true; } } }
+        public string EquippedHat   { get { lock (_lock) return _equippedHat; } set { lock (_lock) { _equippedHat = value; _dirty = true; } } }
+
+        public string OwnedCosmetics
+        {
+            get { lock (_lock) return string.Join(",", _ownedCosmetics); }
+            set
+            {
+                lock (_lock)
+                {
+                    _ownedCosmetics.Clear();
+                    if (!string.IsNullOrEmpty(value))
+                        foreach (var s in value.Split(','))
+                            if (!string.IsNullOrWhiteSpace(s)) _ownedCosmetics.Add(s.Trim());
+                    _dirty = true;
+                }
+            }
+        }
 
         public bool OwnsCosmetic(string id)
         {

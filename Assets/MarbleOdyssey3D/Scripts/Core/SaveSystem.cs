@@ -317,6 +317,12 @@ namespace MarbleOdyssey
         // =====================================================================
 
         /// <summary>Flush cached data to PlayerPrefs. Call after important changes.</summary>
+        public void ForceSave()
+        {
+            lock (_lock) { _dirty = true; }
+            Save();
+        }
+
         public void Save()
         {
             lock (_lock)

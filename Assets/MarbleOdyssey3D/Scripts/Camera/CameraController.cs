@@ -15,6 +15,8 @@ namespace MarbleOdyssey
     /// </summary>
     public class CameraController : MonoBehaviour
     {
+        private static CameraController _inst;
+        public static CameraController Instance => _inst;
         // =====================================================================
         // Camera Preset
         // =====================================================================
@@ -123,6 +125,9 @@ namespace MarbleOdyssey
 
         private void Awake()
         {
+            if (_inst != null && _inst != this) { Destroy(gameObject); return; }
+            _inst = this;
+
             _camera = GetComponent<Camera>();
             if (_camera == null)
                 _camera = GetComponentInChildren<Camera>();

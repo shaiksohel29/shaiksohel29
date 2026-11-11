@@ -741,22 +741,4 @@ namespace MarbleOdyssey
         }
     }
 
-    // =========================================================================
-    // Gravity Zone — attach to a trigger collider tagged "GravityZone"
-    // =========================================================================
-
-    public class GravityZone : MonoBehaviour
-    {
-        [SerializeField] private Vector3 _gravityDirection = Vector3.down;
-        [SerializeField] private float _gravityStrength = 15f;
-
-        public Vector3 GravityDirection => _gravityDirection.normalized;
-        public float GravityStrength => _gravityStrength;
-
-        private void OnDrawGizmosSelected()
-        {
-            Gizmos.color = Color.magenta;
-            Gizmos.DrawRay(transform.position, _gravityDirection.normalized * 3f);
-        }
-    }
 }

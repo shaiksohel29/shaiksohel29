@@ -13,7 +13,7 @@ namespace MarbleOdyssey
         [SerializeField] private ParticleSystem _distortionParticles;
 
         public Vector3 GravityDirection => _gravityDirection.normalized;
-        public float GravityStrengthValue => _gravityStrength;
+        public float GravityStrength => _gravityStrength;
 
         private Rigidbody _affectedRb;
         private bool _marbleInside;

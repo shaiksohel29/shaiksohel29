@@ -3,19 +3,24 @@ using UnityEngine;
 
 namespace MarbleOdyssey
 {
+    [Serializable]
+    public struct DailyChallengeData
+    {
+        public string DateKey;
+        public int WorldIndex;
+        public int LevelIndex;
+        public float SpeedMultiplier;
+        public float GravityMultiplier;
+        public float TimeLimit;
+        public int GemTarget;
+    }
+
     public class DailyChallengeManager : MonoBehaviour
     {
         private static DailyChallengeManager _instance;
         public static DailyChallengeManager Instance => _instance;
 
-        private SaveSystem _save;
-        private int _todaySeed;
-        private bool _completedToday;
-
-        public int CurrentStreak => _save?.DailyStreak ?? 0;
-        public bool CompletedToday => _completedToday;
-        public int TodayWorldIndex { get; private set; }
-        public int TodayLevelIndex { get; private set; }
+        [SerializeField] private ChallengeModifiers _modifiers;
 
         private void Awake()
         {
@@ -24,89 +29,100 @@ namespace MarbleOdyssey
             DontDestroyOnLoad(gameObject);
         }
 
-        private void Start()
-        {
-            _save = SaveSystem.Instance;
-            GenerateDailyChallenge();
-            CheckStreak();
-        }
-
         private void OnDestroy()
         {
             if (_instance == this) _instance = null;
         }
 
-        private void GenerateDailyChallenge()
+        public DailyChallengeData GetTodaysChallenge()
         {
-            string today = DateTime.UtcNow.ToString("yyyyMMdd");
-            _todaySeed = today.GetHashCode();
-            var rng = new System.Random(_todaySeed);
-            TodayWorldIndex = rng.Next(0, GameConstants.TotalWorlds);
-            TodayLevelIndex = rng.Next(0, GameConstants.LevelsPerWorld);
+            return GetChallengeForDate(DateTime.UtcNow);
         }
 
-        private void CheckStreak()
+        public DailyChallengeData GetChallengeForDate(DateTime date)
         {
-            if (_save == null) return;
-            string lastDate = _save.LastDailyDate;
-            string today = DateTime.UtcNow.ToString("yyyyMMdd");
+            string dateKey = date.ToString("yyyy-MM-dd");
+            int seed = dateKey.GetHashCode();
+            var rng = new System.Random(seed);
 
-            _completedToday = lastDate == today;
+            int maxWorlds = _modifiers != null ? _modifiers.MaxUnlockedWorlds : GameConstants.TotalWorlds;
+            int worldIndex = rng.Next(0, Mathf.Min(maxWorlds, GameConstants.TotalWorlds));
+            int levelIndex = rng.Next(0, GameConstants.LevelsPerWorld);
 
-            if (!string.IsNullOrEmpty(lastDate) && lastDate != today)
+            float speedMult = 1f;
+            float gravMult = 1f;
+            float timeLimit = 120f;
+            int gemTarget = 5;
+
+            if (_modifiers != null)
             {
-                if (DateTime.TryParseExact(lastDate, "yyyyMMdd", null,
-                    System.Globalization.DateTimeStyles.None, out DateTime last))
-                {
-                    double daysDiff = (DateTime.UtcNow.Date - last.Date).TotalDays;
-                    if (daysDiff > 1)
-                    {
-                        _save.DailyStreak = 0;
-                        _save.ForceSave();
-                    }
-                }
+                speedMult = Lerp(rng, _modifiers.MinSpeedMultiplier, _modifiers.MaxSpeedMultiplier);
+                gravMult = Lerp(rng, _modifiers.MinGravityMultiplier, _modifiers.MaxGravityMultiplier);
+                timeLimit = Lerp(rng, _modifiers.MinTimeLimit, _modifiers.MaxTimeLimit);
+                gemTarget = rng.Next(_modifiers.MinGemTarget, _modifiers.MaxGemTarget + 1);
             }
-        }
 
-        public void CompleteChallenge(float completionTime)
-        {
-            if (_completedToday || _save == null) return;
-
-            _completedToday = true;
-            _save.DailyStreak++;
-            _save.LastDailyDate = DateTime.UtcNow.ToString("yyyyMMdd");
-
-            int bonus = Mathf.Min(
-                _save.DailyStreak * GameConstants.Rewards.DailyStreakBonus,
-                GameConstants.Rewards.MaxDailyStreakBonus);
-            int totalReward = GameConstants.Rewards.DailyChallengeBase + bonus;
-
-            _save.AddGems(totalReward);
-            _save.ForceSave();
-
-            EventBus.Publish(new DailyChallengeCompleteEvent
+            return new DailyChallengeData
             {
-                Day = int.Parse(DateTime.UtcNow.ToString("yyyyMMdd")),
-                Time = completionTime,
-                Streak = _save.DailyStreak
+                DateKey = dateKey,
+                WorldIndex = worldIndex,
+                LevelIndex = levelIndex,
+                SpeedMultiplier = speedMult,
+                GravityMultiplier = gravMult,
+                TimeLimit = timeLimit,
+                GemTarget = gemTarget
+            };
+        }
+
+        public bool HasCompletedToday()
+        {
+            string dateKey = DateTime.UtcNow.ToString("yyyy-MM-dd");
+            return PlayerPrefs.GetString("daily_last_completed", "") == dateKey;
+        }
+
+        public void CompleteChallenge(int score)
+        {
+            string dateKey = DateTime.UtcNow.ToString("yyyy-MM-dd");
+            string lastCompleted = PlayerPrefs.GetString("daily_last_completed", "");
+
+            string yesterday = DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-dd");
+            int streak = PlayerPrefs.GetInt("daily_streak", 0);
+
+            if (lastCompleted == yesterday)
+                streak++;
+            else if (lastCompleted != dateKey)
+                streak = 1;
+
+            PlayerPrefs.SetString("daily_last_completed", dateKey);
+            PlayerPrefs.SetInt("daily_streak", streak);
+
+            int bestScore = PlayerPrefs.GetInt("daily_best_" + dateKey, 0);
+            if (score > bestScore)
+                PlayerPrefs.SetInt("daily_best_" + dateKey, score);
+
+            int totalCompleted = PlayerPrefs.GetInt("daily_total", 0) + 1;
+            PlayerPrefs.SetInt("daily_total", totalCompleted);
+            PlayerPrefs.Save();
+
+            EventBus.Publish(new DailyChallengeCompletedEvent
+            {
+                Score = score,
+                Streak = streak
             });
-
-            EventBus.Publish(new AudioPlayEvent { ClipName = "daily_complete", Volume = 1f });
         }
 
-        public string GetChallengeWorldName()
+        public int GetStreak() => PlayerPrefs.GetInt("daily_streak", 0);
+        public int GetTotalCompleted() => PlayerPrefs.GetInt("daily_total", 0);
+
+        private static float Lerp(System.Random rng, float min, float max)
         {
-            if (TodayWorldIndex >= 0 && TodayWorldIndex < GameConstants.Worlds.Themes.Length)
-                return GameConstants.Worlds.Themes[TodayWorldIndex].Name;
-            return "Unknown";
+            return min + (float)rng.NextDouble() * (max - min);
         }
+    }
 
-        public int GetCurrentReward()
-        {
-            int bonus = Mathf.Min(
-                (CurrentStreak + 1) * GameConstants.Rewards.DailyStreakBonus,
-                GameConstants.Rewards.MaxDailyStreakBonus);
-            return GameConstants.Rewards.DailyChallengeBase + bonus;
-        }
+    public struct DailyChallengeCompletedEvent
+    {
+        public int Score;
+        public int Streak;
     }
 }

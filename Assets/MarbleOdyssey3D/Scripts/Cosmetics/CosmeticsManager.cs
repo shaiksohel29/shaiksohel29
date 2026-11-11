@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -5,114 +6,143 @@ namespace MarbleOdyssey
 {
     public class CosmeticsManager : MonoBehaviour
     {
-        public static CosmeticsManager Instance { get; private set; }
+        private static CosmeticsManager _instance;
+        public static CosmeticsManager Instance => _instance;
 
-        [SerializeField] private MarbleSkinData[] _allSkins;
-        [SerializeField] private MarbleSkinData _defaultSkin;
+        [SerializeField] private MarbleSkin[] _allSkins;
+        [SerializeField] private MarbleSkin _defaultSkin;
 
-        private const string EquippedSkinKey = "Cosmetics_EquippedSkin";
-        private const string OwnedSkinsKey = "Cosmetics_Owned";
+        public event Action<MarbleSkin> OnSkinChanged;
 
-        private HashSet<string> _ownedSkins = new HashSet<string>();
-        private MarbleSkinData _equippedSkin;
+        private string _equippedSkinId;
+        private HashSet<string> _unlockedSkins = new();
 
-        public MarbleSkinData EquippedSkin => _equippedSkin;
-        public IReadOnlyCollection<MarbleSkinData> AllSkins => _allSkins;
+        public MarbleSkin[] AllSkins => _allSkins;
 
         private void Awake()
         {
-            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-            Instance = this;
+            if (_instance != null && _instance != this) { Destroy(gameObject); return; }
+            _instance = this;
             DontDestroyOnLoad(gameObject);
-
-            LoadOwnedSkins();
-            LoadEquippedSkin();
-        }
-
-        private void LoadOwnedSkins()
-        {
-            _ownedSkins.Clear();
-            // Default skin is always owned
-            if (_defaultSkin != null)
-                _ownedSkins.Add(_defaultSkin.SkinId);
-
-            string owned = PlayerPrefs.GetString(OwnedSkinsKey, "");
-            if (!string.IsNullOrEmpty(owned))
-            {
-                foreach (var id in owned.Split(','))
-                    _ownedSkins.Add(id.Trim());
-            }
-        }
-
-        private void LoadEquippedSkin()
-        {
-            string equippedId = PlayerPrefs.GetString(EquippedSkinKey, "");
-            _equippedSkin = GetSkinById(equippedId) ?? _defaultSkin;
-        }
-
-        public bool IsSkinOwned(string skinId) => _ownedSkins.Contains(skinId);
-
-        public bool TryPurchaseSkin(string skinId)
-        {
-            if (_ownedSkins.Contains(skinId)) return false;
-
-            var skin = GetSkinById(skinId);
-            if (skin == null) return false;
-
-            int currentGems = SaveSystem.GetGems();
-            if (currentGems < skin.Price) return false;
-
-            SaveSystem.AddGems(-skin.Price);
-            _ownedSkins.Add(skinId);
-            SaveOwnedSkins();
-
-            AudioManager.Instance?.PlaySFX("purchase_success");
-            return true;
-        }
-
-        public bool TryEquipSkin(string skinId)
-        {
-            if (!_ownedSkins.Contains(skinId)) return false;
-
-            var skin = GetSkinById(skinId);
-            if (skin == null) return false;
-
-            _equippedSkin = skin;
-            PlayerPrefs.SetString(EquippedSkinKey, skinId);
-            PlayerPrefs.Save();
-
-            AudioManager.Instance?.PlaySFX("equip_skin");
-            return true;
-        }
-
-        public void ApplySkinToMarble(Renderer marbleRenderer)
-        {
-            if (_equippedSkin == null || marbleRenderer == null) return;
-
-            if (_equippedSkin.Material != null)
-                marbleRenderer.material = _equippedSkin.Material;
-
-            if (_equippedSkin.OverrideColor)
-                marbleRenderer.material.color = _equippedSkin.BaseColor;
-        }
-
-        private MarbleSkinData GetSkinById(string id)
-        {
-            if (string.IsNullOrEmpty(id) || _allSkins == null) return null;
-            foreach (var skin in _allSkins)
-                if (skin != null && skin.SkinId == id) return skin;
-            return null;
-        }
-
-        private void SaveOwnedSkins()
-        {
-            PlayerPrefs.SetString(OwnedSkinsKey, string.Join(",", _ownedSkins));
-            PlayerPrefs.Save();
+            LoadState();
         }
 
         private void OnDestroy()
         {
-            if (Instance == this) Instance = null;
+            if (_instance == this) _instance = null;
+        }
+
+        private void LoadState()
+        {
+            _equippedSkinId = PlayerPrefs.GetString("cosmetics_equipped", "default");
+            string unlocked = PlayerPrefs.GetString("cosmetics_unlocked", "default");
+            _unlockedSkins.Clear();
+            foreach (var id in unlocked.Split(','))
+            {
+                if (!string.IsNullOrEmpty(id))
+                    _unlockedSkins.Add(id);
+            }
+        }
+
+        private void SaveState()
+        {
+            PlayerPrefs.SetString("cosmetics_equipped", _equippedSkinId);
+            PlayerPrefs.SetString("cosmetics_unlocked", string.Join(",", _unlockedSkins));
+            PlayerPrefs.Save();
+        }
+
+        public List<MarbleSkin> GetUnlockedSkins()
+        {
+            var result = new List<MarbleSkin>();
+            if (_allSkins == null) return result;
+            foreach (var skin in _allSkins)
+            {
+                if (IsSkinUnlocked(skin.SkinId))
+                    result.Add(skin);
+            }
+            return result;
+        }
+
+        public MarbleSkin GetEquippedSkin()
+        {
+            if (_allSkins == null) return _defaultSkin;
+            foreach (var skin in _allSkins)
+            {
+                if (skin.SkinId == _equippedSkinId)
+                    return skin;
+            }
+            return _defaultSkin;
+        }
+
+        public void EquipSkin(string skinId)
+        {
+            if (!IsSkinUnlocked(skinId)) return;
+            _equippedSkinId = skinId;
+            SaveState();
+            var skin = FindSkin(skinId);
+            if (skin != null) OnSkinChanged?.Invoke(skin);
+        }
+
+        public bool PurchaseSkin(string skinId)
+        {
+            var skin = FindSkin(skinId);
+            if (skin == null || skin.UnlockType != SkinUnlockType.GemPurchase) return false;
+            if (IsSkinUnlocked(skinId)) return false;
+
+            int gems = SaveSystem.Instance != null ? SaveSystem.Instance.GetGems() : 0;
+            if (gems < skin.GemCost) return false;
+
+            SaveSystem.Instance?.AddGems(-skin.GemCost);
+            _unlockedSkins.Add(skinId);
+            SaveState();
+            return true;
+        }
+
+        public bool IsSkinUnlocked(string skinId)
+        {
+            if (string.IsNullOrEmpty(skinId)) return false;
+            if (_unlockedSkins.Contains(skinId)) return true;
+            var skin = FindSkin(skinId);
+            if (skin == null) return false;
+            return skin.UnlockType == SkinUnlockType.Default;
+        }
+
+        public void CheckAutoUnlocks()
+        {
+            if (_allSkins == null) return;
+            bool changed = false;
+            foreach (var skin in _allSkins)
+            {
+                if (_unlockedSkins.Contains(skin.SkinId)) continue;
+                bool shouldUnlock = skin.UnlockType switch
+                {
+                    SkinUnlockType.Default => true,
+                    SkinUnlockType.WorldComplete =>
+                        skin.RequiredWorldIndex >= 0 &&
+                        SaveSystem.Instance != null &&
+                        SaveSystem.Instance.IsWorldComplete(skin.RequiredWorldIndex),
+                    SkinUnlockType.DailyStreak =>
+                        DailyChallengeManager.Instance != null &&
+                        DailyChallengeManager.Instance.GetStreak() >= skin.RequiredStreak,
+                    _ => false
+                };
+                if (shouldUnlock)
+                {
+                    _unlockedSkins.Add(skin.SkinId);
+                    changed = true;
+                }
+            }
+            if (changed) SaveState();
+        }
+
+        private MarbleSkin FindSkin(string skinId)
+        {
+            if (_allSkins == null) return null;
+            foreach (var skin in _allSkins)
+            {
+                if (skin.SkinId == skinId) return skin;
+            }
+            return null;
         }
     }
 }
